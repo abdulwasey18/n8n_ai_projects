@@ -1,0 +1,652 @@
+{
+  "name": "Expense Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -880,
+        -48
+      ],
+      "id": "6328b26b-8402-46be-9098-70054eb0885c",
+      "name": "Telegram Trigger",
+      "webhookId": "5af2475a-f22c-4802-aa33-24a2a320ecff",
+      "credentials": {
+        "telegramApi": {
+          "id": "8BHt7QMCVJkiCSak",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.voice.text }}{{ $json.message.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "expensetype",
+              "description": "identify and extract type of expense, usually comes BEFORE \"to\" or appear with the amount. Understand the word correctly and you can ignore if the user adds \"THE\" before the expense type."
+            },
+            {
+              "name": "amount",
+              "type": "number",
+              "description": "extract the numeric value from phrases like \"100 USD\", \"convert 50\", \"200 dollars\". Return only the number with \"$\" sign."
+            },
+            {
+              "name": "notes",
+              "description": "identify and extract notes"
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "=You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you may omit the attribute's value.\n\nIf the user message contains irrelevent information or does not contains all the attributes - date, amount and expense type then do not add date in the date column"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        48
+      ],
+      "id": "b3e3c974-8904-4485-bad1-d0e47d66323a",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        256
+      ],
+      "id": "a676cdb6-8206-45ed-97b5-d066877f4484",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "KhbH1V310BXci8P5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "=#Overview \n\n- You are an expert expense tracker.\n\n- Your job is to understand user message and identify extract the expense type, amount and update it in the google sheet spreadsheet.\n\n- If the user message does not contain any relevant info then simply answer whatever is being asked but DONT UPDATE it in the google sheets.\n\n\nCRITICAL RULE: Always process EVERY expense entry, even if identical to previous ones. Users legitimately have multiple similar expenses throughout the day. NEVER skip or question duplicate amounts or categories.\n\n\nFor Example - \n\n- If the user types \"10 for gas\" or just \"10 gas\"\n\n  You extract \"10\"   =  Amount\n              \"gas\"  =  expense type\n\n- Always add $ sign at the end of the amount \n\nCONVERSATION GUIDELINES:\n\n\n- For greetings (hi, hello, hey): Respond warmly and explain you can help with currency conversions\n\n- For general questions: Answer naturally WITHOUT using tools\n\n- If the user is asking irrelevany questions then politely \nsay that you are only supposed to answer questions related to expense tracker\n\n\n**THESE ARE JUST EXAMPLES FOR YOUR REFERENCE, DO NOT USE ONLY USE THE SAME TEXT EVERYTIME**\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        128,
+        48
+      ],
+      "id": "af448a25-4975-4f7f-b8e8-ac6b1cb5d859",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        16,
+        240
+      ],
+      "id": "2754f219-1a6f-4678-a61d-4d0414fed1d1",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "KhbH1V310BXci8P5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Agent').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        32
+      ],
+      "id": "75b928e2-da54-44aa-90aa-1d19d6da7aad",
+      "name": "Send a text message",
+      "webhookId": "8565600d-f585-49e3-abb0-16cd17e85445",
+      "credentials": {
+        "telegramApi": {
+          "id": "8BHt7QMCVJkiCSak",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Wj5YVAIdobk8vLmEjSwF-N2TwWr-J8eVO5aWEX66xYY",
+          "mode": "list",
+          "cachedResultName": "Monthly Expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wj5YVAIdobk8vLmEjSwF-N2TwWr-J8eVO5aWEX66xYY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wj5YVAIdobk8vLmEjSwF-N2TwWr-J8eVO5aWEX66xYY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Type of Expense": "={{ $('Information Extractor').item.json.output.expensetype }}",
+            "Total Amount": "={{ $('Information Extractor').item.json.output.amount }}",
+            "Date": "={{ $now.format(\"DD\") }}\n"
+          },
+          "matchingColumns": [
+            "Type of Expense"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type of Expense",
+              "displayName": "Type of Expense",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Total Amount",
+              "displayName": "Total Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        704,
+        32
+      ],
+      "id": "4109f3f1-9f6b-4d53-91d5-31498e470c0d",
+      "name": "Expense Tracker",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "iO6mjI962RQ8Su2A",
+          "name": "Demo 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "79f01f26-2589-4b75-b220-a727b7a96d22",
+              "leftValue": "={{ $('Information Extractor').item.json.output.amount }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c838792d-d5e6-4bf9-91d3-77ecd83ea326",
+              "leftValue": "={{ $('Information Extractor').item.json.output.expensetype }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        48
+      ],
+      "id": "a52947ff-b6d9-486d-8042-bf45f511434b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.voice.text }}{{ $('Edit Fields').item.json.message.text }}",
+        "options": {
+          "systemMessage": "=You are a helpful expense tracker assistant. Analyze the user's message whether it maybe a voice or text and respond appropriately:\n\n1. If it's a GREETING or THANKS (like \"hello\", \"hi\", \"thanks\", \"thank you\"):\n   - Respond warmly and briefly\n   - Example: \"You're welcome!  Let me know if you need to add any expenses.\"\n\n2. If it's a CASUAL MESSAGE or QUESTION (like \"how are you\", \"what's up\"):\n   - Respond naturally and remind them you're here for expense tracking\n   - Example: \"I'm doing great! Ready to help you track expenses. Just send me an amount and what type of expense?\"\n\n3. If it's an INVALID EXPENSE (has words but missing amount/category):\n   - Explain what's missing\n   - Example: \"I see you mentioned [something], but I need to know both amount and what kind of expense?\n\nKeep responses friendly and concise."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        288
+      ],
+      "id": "f137928d-f850-4e77-a91c-ab09bad972f8",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        544,
+        464
+      ],
+      "id": "7456cfc8-0cc1-4ccd-9a59-6d8694f945c0",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "KhbH1V310BXci8P5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        288
+      ],
+      "id": "018ceed4-bcdc-4fe9-a3f0-ad827b5a0633",
+      "name": "Send a text message1",
+      "webhookId": "3b1c5515-6d7f-4ddd-847c-fea2e912fd64",
+      "credentials": {
+        "telegramApi": {
+          "id": "8BHt7QMCVJkiCSak",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aa7a19d9-d843-4725-8170-e8a2b8471043",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        -48
+      ],
+      "id": "ed004d6d-0439-494b-9e7e-d3c5cfd55931",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "911518d6-f7c6-495c-b9e9-52fa741d6aac",
+              "name": "voice.text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "29d20d1c-161c-43d7-ac29-6da5cf5763e7",
+              "name": "message.text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "f3c53c73-cc83-409c-98b6-36319bc4f034",
+              "name": "message.chat.id",
+              "value": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "7f63943a-e74c-400e-a708-82db099f9d60",
+              "name": "message.from.id",
+              "value": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -480,
+        48
+      ],
+      "id": "06f81c2d-8c31-46ce-aab9-3051c0c5a7fe",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -64,
+        -224
+      ],
+      "id": "375b3684-006c-4642-82df-ba4651500a18",
+      "name": "Transcribe User Voice Message",
+      "credentials": {
+        "openAiApi": {
+          "id": "maBAxxLNM8bgtsVq",
+          "name": "DEMO OPENAI KEY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot8154357589:AAG43SGmWff55vsV00YIGt1N6OjMuuoTip4/{{ $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -304,
+        -224
+      ],
+      "id": "76260d5a-c0e6-488a-984c-9952559d8863",
+      "name": "Download Audio"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot8154357589:AAG43SGmWff55vsV00YIGt1N6OjMuuoTip4/getFile",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "file_id",
+              "value": "={{ $('Telegram Trigger').item.json.message.voice.file_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -512,
+        -224
+      ],
+      "id": "7a46b278-b755-4ef3-9884-678da37551fb",
+      "name": "Get Audio File"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expense Tracker": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Expense Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Get Audio File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe User Voice Message": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe User Voice Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Audio File": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "284d915e-d7e7-42ff-9292-68b5b293fa3c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "17a0eb176044cd847804a14ecc4dfc01390767f0600fb4c49c80e468d99a0672"
+  },
+  "id": "1hMzY7Uwm1KcJ3j6",
+  "tags": []
+}
