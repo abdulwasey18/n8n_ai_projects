@@ -1,0 +1,262 @@
+{
+  "name": "Currency Converter AI Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        -128
+      ],
+      "id": "f01af239-82f7-4f99-8448-bd2c594d9813",
+      "name": "Telegram Trigger",
+      "webhookId": "0f2ada97-322b-44be-852c-95b9dc395326",
+      "credentials": {
+        "telegramApi": {
+          "id": "8BHt7QMCVJkiCSak",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {
+          "systemMessage": "=You are a helpful currency conversion assistant that provides accurate, real-time exchange rates.\n\nCRITICAL RULES:\n- You MUST ALWAYS use the get_exchange_rate tool to fetch current exchange rates\n- NEVER estimate, guess, or use your own knowledge for exchange rates\n- Your training data is outdated - always call the tool for accurate rates\n- Wait for the tool result before responding to the user\n\nWORKFLOW FOR CURRENCY CONVERSION:\n1. When user asks to convert currency, first extract: amount, from currency, target currency\n2. Call the get_exchange_rate tool with the from and target currencies\n3. Wait for the tool to return the current rate\n4. Calculate the final amount: user_amount × exchange_rate\n5. Present the result clearly with the rate used\n\n\nCONVERSATION GUIDELINES:\n- For greetings (hi, hello, hey): Respond warmly and explain you can help with currency conversions\n- For general questions: Answer naturally WITHOUT using tools\n- For conversion requests: ALWAYS use the tool first, then calculate\n- If the tool fails: Apologize and ask the user to try again\n- If the user is asking irrelevany questions then politely say that you are only supposed to answer questions related to currency exchanges\n- If the user \n\nEXAMPLES:\n\n\nUser: \"convert 100 USD to INR\" or \"yes\"\nYou: [Call get_exchange_rate tool with base=USD, target=INR]\n[Tool returns rate: 83.50]\n[Calculate: 100 × 83.50 = 8,350]\nYou: \"100 USD = 8,350 INR (at the current rate of 1 USD = 83.50 INR)\"\n\nUser: \"what's the exchange rate for EUR to GBP?\"\nYou: [Call get_exchange_rate tool with base=EUR, target=GBP]\n[Tool returns rate: 0.86]\nYou: \"The current exchange rate is 1 EUR = 0.86 GBP\"\n\n**THESE ARE JUST EXAMPLES FOR YOUR REFERENCE, DO NOT USE ONLY USE THE SAME TEXT EVERYTIME**\n\n\nFORMATTING:\n- Always show both the converted amount and the exchange rate used\n- Use clear, conversational language\n- Include currency codes (USD, INR, etc.) for clarity\n- Round to 2 decimal places for currency amounts\n\nRemember: Accuracy is critical. Always use the tool - never guess rates"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        128,
+        -128
+      ],
+      "id": "d1fd81b3-b6dd-4fb7-ba74-b570fff23719",
+      "name": "AI Agent",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4.1-nano",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        64
+      ],
+      "id": "f5133e1d-9f2c-404d-b0f6-1e53ca3c5e34",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "KhbH1V310BXci8P5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Agent').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        -128
+      ],
+      "id": "11358ec4-9e99-455f-8362-5582e5e560f2",
+      "name": "Send a text message",
+      "webhookId": "c2edfd59-82f6-49b6-b022-e2f689fb09a6",
+      "credentials": {
+        "telegramApi": {
+          "id": "8BHt7QMCVJkiCSak",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.update_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        192,
+        80
+      ],
+      "id": "59e651e0-814a-4adf-b478-c817ad3ab6bc",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.message.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "amount",
+              "description": "Extract the numeric value from phrases like \"100 USD\", \"convert 50\", \"200 dollars\". Return only the number."
+            },
+            {
+              "name": "fromcurrency",
+              "description": "Extract the source currency. Look for currency codes (USD, EUR) or names (dollars, euros) that come BEFORE \"to\" or appear with the amount."
+            },
+            {
+              "name": "targetcurrency",
+              "description": "Extract the target currency. Look for currency codes (INR, GBP) or names (rupees, pounds) that come AFTER \"to\" or \"into\"."
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "=You are a currency conversion assistant.\n\nTOOL USAGE RULES:\n- Use the Information Extractor tool ONLY when user requests currency conversion\n- Conversion indicators: \"convert\", \"exchange\", currency codes (USD, INR, EUR), amounts with currency\n- DO NOT use tools for: greetings, questions about capabilities, general chat\n\nRESPONSE GUIDELINES:\n- Greetings → Respond warmly and explain what you can do\n- Unclear requests → Ask clarifying questions\n- Conversion requests → Use the tool and provide the result\n- Errors → Apologize and ask user to rephrase\n\nEXAMPLES:\nUser: \"hi\" \nYou: \"Hello! I can help you convert between different currencies. For example, try: 'convert 100 USD to INR'\"\n\nUser: \"convert 100 usd to inr\"\nYou: [Use Information Extractor tool to get the conversion]"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        -128
+      ],
+      "id": "b72fa87c-1fea-401d-baf6-e6ecd050f7ab",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        80
+      ],
+      "id": "c85be0aa-32cf-44b4-8a8a-0adb64d2ebfc",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "KhbH1V310BXci8P5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Fetches real-time currency exchange rates. \n   Requires fromcurrency and targetcurrency parameters.\n   Always use this tool to get current rates - never estimate.\n   Returns the conversion rate between the two currencies.",
+        "url": "=https://v6.exchangerate-api.com/v6/e2bddd968499ae75a35f01e0/pair/{{ $('Information Extractor').item.json.output.fromcurrency }}/{{ $('Information Extractor').item.json.output.targetcurrency }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        384,
+        80
+      ],
+      "id": "fbdcdf6e-1e44-4e26-954b-893234c2ea5f",
+      "name": "get_exchange_rate"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_exchange_rate": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c66129ff-879b-4e56-b857-256052e05d47",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "17a0eb176044cd847804a14ecc4dfc01390767f0600fb4c49c80e468d99a0672"
+  },
+  "id": "FqA9KIHkFEgsor6K",
+  "tags": []
+}
