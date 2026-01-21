@@ -1,0 +1,605 @@
+{
+  "name": "Kids.code.in",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -544,
+        -384
+      ],
+      "id": "787bb4e8-7fec-4765-b432-a2beefdd6c73",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6e1uVORvgUSLFesG",
+          "name": "DEMO Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -536,
+        -160
+      ],
+      "id": "6731e9c2-f399-48bd-8ffd-98b25045a07c",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "maBAxxLNM8bgtsVq",
+          "name": "DEMO OPENAI KEY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -408,
+        -160
+      ],
+      "id": "ad669564-d01f-4325-8fe4-7f7c4211f732",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.emailBody }}",
+        "options": {
+          "systemMessage": "=#Overview\n\n- You are a helpful intelligent assistant that answers any inquiries for our Edtech platform called \"Kids.code.in\" and also books demo sessions based on teacher availabilty. You will be drafting email replies for incoming queries that come through.\n\n#Tools \n\nVector_store - ALWAYS use this tool when answering any questions that user might ask.\n\nemail_draft - This tool will be used to draft any emails back to the user. Make sure to ALWAYS use the Vector_store before using this tool\n\nGet availability of teacher - This tool will be used to check whether the teacher is available for a class or not.\n\n\n##Rules\n\n- You must always pull accurate information from the Vector_store\n- Always draft an email with an answer\n- You should never guess any answers, always answer by looking into the Vector_store\n- You must always check the google calender tool and see if the teacher is available or not and then answer the user. Do not assume the availability of the teacher.\n- Increase gaps in between sentences so that it looks more professional and clear to understand."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -504,
+        256
+      ],
+      "id": "88f55066-8222-432d-985c-c722556e1b1e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        480
+      ],
+      "id": "6f3b93c5-5adb-437f-b86d-0fe7f68c6c97",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "KhbH1V310BXci8P5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -432,
+        688
+      ],
+      "id": "42b2ead4-64e0-4051-bb23-61eea8939700",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "maBAxxLNM8bgtsVq",
+          "name": "DEMO OPENAI KEY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Work with data from the supabase vector database",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": null,
+        "includeDocumentMetadata": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -512,
+        480
+      ],
+      "id": "374e8d84-b6b4-4ac8-9fa2-6701e147edaa",
+      "name": "Vector_Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "6e1uVORvgUSLFesG",
+          "name": "DEMO Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1vsFiiYbnbpV2spzoCi8x4B7g8iel6FHI",
+          "mode": "list",
+          "cachedResultName": "Kids Knowledge Base",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1vsFiiYbnbpV2spzoCi8x4B7g8iel6FHI"
+        },
+        "event": "fileUpdated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        -184
+      ],
+      "id": "e2181262-9670-4302-9cfc-5b5fba41dedc",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "E2b1ivh84UOUCQQ3",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -768,
+        -184
+      ],
+      "id": "9c37bb07-5624-45c9-bb43-88858c4105be",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "E2b1ivh84UOUCQQ3",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1216,
+        -376
+      ],
+      "id": "26aefa22-f3e0-4d36-8635-45a0efe2b082",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1vsFiiYbnbpV2spzoCi8x4B7g8iel6FHI",
+            "mode": "list",
+            "cachedResultName": "Kids Knowledge Base",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1vsFiiYbnbpV2spzoCi8x4B7g8iel6FHI"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -992,
+        -376
+      ],
+      "id": "078d18f7-899a-4546-b42f-e589d57a84f7",
+      "name": "Search files and folders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "E2b1ivh84UOUCQQ3",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -768,
+        -376
+      ],
+      "id": "3086bf4f-b705-4d62-a83c-da7b2530fbb1",
+      "name": "Get Content",
+      "executeOnce": false,
+      "retryOnFail": false,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "E2b1ivh84UOUCQQ3",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1216,
+        256
+      ],
+      "id": "4fd7bd2e-58d6-44a6-af39-dec33be546ce",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1PGADP5vFH8kpnR7",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a59ec129-1709-4681-9b1b-f91ddc380a39",
+              "name": "emailBody",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -992,
+        256
+      ],
+      "id": "b36293d7-bda6-431f-a932-880f15adc42d",
+      "name": "Email Body"
+    },
+    {
+      "parameters": {
+        "chatId": "=7739584244",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        256
+      ],
+      "id": "f1678732-ef36-40e8-ad1f-cc28327c2beb",
+      "name": "Send a text message",
+      "webhookId": "fbed2753-0405-47f4-a17d-ab31247ec7b6",
+      "credentials": {
+        "telegramApi": {
+          "id": "8BHt7QMCVJkiCSak",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Gmail Trigger').item.json.historyId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -640,
+        480
+      ],
+      "id": "8d63d480-1628-45a0-98ca-791791018912",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        480
+      ],
+      "id": "2c3fad78-a0e0-4227-a4dd-e7ad37a9b1df",
+      "name": "email_draft",
+      "webhookId": "0069a19c-ca2b-4038-ab14-fa1fbf327c9a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1PGADP5vFH8kpnR7",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "abdulwasey020@gmail.com",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        -96,
+        480
+      ],
+      "id": "7ae23bf5-2d01-44d0-b2df-797863af1007",
+      "name": "Get availability of teacher",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "22lTik2Lg509aeW7",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector_Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector_Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "Get Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Content": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Email Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Body": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "email_draft": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get availability of teacher": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": 300,
+    "availableInMCP": false,
+    "timeSavedPerExecution": 10
+  },
+  "versionId": "8b1dfa87-6aaa-4442-98ab-17b823528c1f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "17a0eb176044cd847804a14ecc4dfc01390767f0600fb4c49c80e468d99a0672"
+  },
+  "id": "83FMcJB5BXtRG9TU",
+  "tags": []
+}
