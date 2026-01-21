@@ -1,0 +1,489 @@
+{
+  "name": "Restaurent Finder",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1328,
+        -400
+      ],
+      "id": "c2ac8e2f-24e2-4925-b342-a07a2f8e8f1c",
+      "name": "Telegram Trigger",
+      "webhookId": "0b681836-17bc-4b32-86a1-45f90e210095",
+      "credentials": {
+        "telegramApi": {
+          "id": "StZH2fM8UiWzYkQ1",
+          "name": "Restaurant Finder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "30fb30a5-23aa-4d24-865c-20c2b26a4c32",
+              "name": "userQuery",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "d9516e0f-d3f2-46ed-9b55-4c9b40bc4e04",
+              "name": "chatID",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1104,
+        -400
+      ],
+      "id": "4fb05b4d-023e-417d-ba5f-33ee004f8e7e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        48,
+        -544
+      ],
+      "id": "5823dc62-dd1a-4509-b468-8db53f7dcdaa",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $('Edit Fields').item.json.userQuery }}"
+            },
+            {
+              "name": "type",
+              "value": "restaurant"
+            },
+            {
+              "name": "key",
+              "value": "AIzaSyDTyL0WuItrshq2QIRf1m7XD00rv9KJSYw"
+            },
+            {
+              "name": "num_results",
+              "value": "={{ $json.output[0].content[0].text.num_results }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -240,
+        -544
+      ],
+      "id": "faf2d14a-145c-45df-8fd1-1f67a8868c67",
+      "name": "Get Places"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/details/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "place_id",
+              "value": "={{ $json.place_id }}"
+            },
+            {
+              "name": "fields",
+              "value": "name,rating,user_ratings_total,price_level,formatted_address,review"
+            },
+            {
+              "name": "key",
+              "value": "AIzaSyDTyL0WuItrshq2QIRf1m7XD00rv9KJSYw"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        -544
+      ],
+      "id": "ae0ff294-0193-434c-87eb-c098ce473f91",
+      "name": "Get Reviews"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output[0].content[0].text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1072,
+        -544
+      ],
+      "id": "304246ec-04bf-4a28-a609-f63bdfad2084",
+      "name": "Send a text message",
+      "webhookId": "5d02bbb5-d3ed-4b6c-a48c-3a7e7f492202",
+      "credentials": {
+        "telegramApi": {
+          "id": "StZH2fM8UiWzYkQ1",
+          "name": "Restaurant Finder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Restaurant:\nName: {{ $json.result.name }}\nAddress: {{ $json.result.formatted_address }}\nGoogle Rating: {{ $json.result.rating }}\nTotal Reviews: {{ $json.result.user_ratings_total }}\nPrice Level: {{ $json.result.price_level }}\n\nRecent Google Reviews (newest first):\n{{\n  $json.result.reviews\n    ? $json.result.reviews\n        .map(r => `- (${r.relative_time_description}) [${r.rating}★] ${r.text}`)\n        .slice(0, 10)\n        .join(\"\\n\")\n    : \"No reviews\"\n}}\n"
+            },
+            {
+              "role": "system",
+              "content": "=#Overview\n\nYou are an Intelligent Restaurant Finder\n\n## Your job is to : \n\n1. Read a restaurant's metadata and recent reviews.\n2. Summarize the restaurant for a normal user.\n3. Compute a 0–100 Restaurant Intelligence Score (RIS) based on given Conditions.\n\n## Conditions : \n1. review_quality (0–40): how positive and detailed reviews are\n2. recent_trend (0–25): are recent reviews better, worse, or similar?\n3. consistency (0–20): do reviews say \"always good\" or \"hit or miss\"?\n4. value_for_money (0–15): price vs portions and quality\n\n### Rules:\n\n- Output should be customer friendly and easy to understand.\n- If a user asks irrelevant questions then answer briefly and let them know that you are here to only help find restaurents.\n- Always follow the above scores and assess restaurents only based on the above conditions, DO NOT ASSUME OR ANSWER WITHOUT APPLYING THE CONDITIONS.\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -544
+      ],
+      "id": "01e1b6f6-3695-438f-b046-e0a99f6100c2",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "maBAxxLNM8bgtsVq",
+          "name": "DEMO OPENAI KEY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "59a74fb4-dad8-4420-afd0-6c193140fbfe",
+              "leftValue": "={{ $json.output[0].content[0].text.intent }}",
+              "rightValue": "restaurant_search",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -528,
+        -400
+      ],
+      "id": "1383d3db-4d0e-4f14-991b-e4254f441f64",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {
+          "systemMessage": "=You are a friendly Restaurent Finder AI assistant.\n\nAnswer the user's question clearly and concisely.\n\nIf the user asks about food or restaurants, you can still answer normally.\n\nbut you do NOT need to call any tools or APIs – just respond in text.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -304,
+        -256
+      ],
+      "id": "7add9675-cfad-4686-8e5e-8f539e4f2833",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        32
+      ],
+      "id": "efa3ef91-42f8-4e89-b41e-164498a4bd18",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "KhbH1V310BXci8P5",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        -256
+      ],
+      "id": "5850a6ef-bbcd-4d59-8efe-acb6b4eec105",
+      "name": "Send a text message1",
+      "webhookId": "b03d2702-377e-4d52-b44d-978621b3026a",
+      "credentials": {
+        "telegramApi": {
+          "id": "StZH2fM8UiWzYkQ1",
+          "name": "Restaurant Finder"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $json.userQuery }}"
+            },
+            {
+              "role": "system",
+              "content": "=You are a classifier for a restaurant search bot.\n\nRead the user's message and return a JSON object with:\n- \"intent\": \"restaurant_search\" or \"general_chat\"\n- \"num_results\": an integer from 1 to 20 based on how many restaurants the user wants.\n\nRules for num_results:\n- If user says \"1\", \"one\", \"single\", \"best one\" → return 1\n- If user says \"2\", \"3\", \"5\", etc → return that number\n- If user says \"few\", \"couple\", \"some\" → return 3\n- If user says \"top 10\", \"give me 10\", etc → return 10\n- If user says nothing about count → return default 5\n- If user says \"all\", \"as many as possible\" → return 10\n\nReturn ONLY valid JSON. No explanations.\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        -400
+      ],
+      "id": "297cd743-7bb4-4ada-9adb-182956677c1c",
+      "name": "Parse Request",
+      "credentials": {
+        "openAiApi": {
+          "id": "maBAxxLNM8bgtsVq",
+          "name": "DEMO OPENAI KEY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": "={{ $('Parse Request').item.json.output[0].content[0].text.num_results }}"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        272,
+        -544
+      ],
+      "id": "a624b3fb-0572-437e-949c-fc1636258050",
+      "name": "Limit"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Parse Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Places": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Reviews": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get Places",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Get Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dfc1f621-3b03-45bf-bfc3-85a6536907e1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "17a0eb176044cd847804a14ecc4dfc01390767f0600fb4c49c80e468d99a0672"
+  },
+  "id": "N6vy7NNFl10g6FSq",
+  "tags": []
+}
